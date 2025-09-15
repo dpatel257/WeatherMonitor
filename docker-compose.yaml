@@ -1,0 +1,29 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: grafana
+      POSTGRES_PASSWORD: grafana_pass
+      POSTGRES_DB: weather_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+
+  grafana:
+    image: grafana/grafana
+    hostname: grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    environment:
+      - GF_DATABASE_TYPE=postgres
+      - GF_DATABASE_HOST=postgres:5432
+      - GF_DATABASE_NAME=weather_db
+      - GF_DATABASE_USER=<<user>>
+      - GF_DATABASE_PASSWORD=<<password>>
