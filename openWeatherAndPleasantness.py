@@ -57,7 +57,27 @@ def fetch_current_temperature(api_key, location):
     if resp.status_code != 200:
         raise Exception(f"API Error: {data.get('message', 'Unknown error')}")
 
-    return data["main"]["temp"]
+    # Main weather measurements
+    main = data.get("main", {})
+    wind = data.get("wind", {})
+    clouds = data.get("clouds", {})
+    weather_info = data.get("weather", [{}])[0]
+
+    rain_volume = data.get("rain", {}).get("1h", 0.0)
+    chance_of_rain = 100.0 if rain_volume > 0 else 0.0
+
+    return {
+        "temp_f": main.get("temp"),
+        "temp_min_f": main.get("temp_min"),
+        "temp_max_f": main.get("temp_max"),
+        "humidity_percent": main.get("humidity"),
+        "cloudiness_percent": clouds.get("all"),
+        "chance_of_rain_percent": chance_of_rain,
+        "wind_mph": wind.get("speed"),
+        "weather": weather_info.get("main"),
+        "weather_description": weather_info.get("description"),
+    }
+
 
 def fetch_weather_points(api_key, location):
     """

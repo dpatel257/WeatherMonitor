@@ -16,8 +16,6 @@ DB_USER = os.environ['POSTGRES_USER']
 DB_PASSWORD = os.environ['POSTGRES_PASSWORD']
 
 
-client = InfluxDBClient(url=INFLUX_URL, token=TOKEN, org=ORG)
-write_api = client.write_api(write_options=SYNCHRONOUS)
 
 def get_weather(city):
     url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={OWM_API_KEY}&units=metric"
@@ -34,17 +32,41 @@ def push_weather_entry(location, entry):
     )
     cur = conn.cursor()
 
-    temp_f = fetch_current_temperature(OWM_API_KEY, location)
-
+    cur_weather = fetch_current_temperature(OWM_API_KEY, location)
 
     upsert_query = """
-        INSERT INTO latest_temperature (location, temperature)
-        VALUES (%s, %s)
-        ON CONFLICT (location)
+        INSERT INTO current_weather (
+            location, temp_f, temp_min_f, temp_max_f,
+            humidity_percent, cloudiness_percent, chance_of_rain_percent,
+            wind_mph, weather, weather_description
+            ) 
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (location) 
         DO UPDATE SET
-            temperature = EXCLUDED.temperature;
+            temp_f = EXCLUDED.temp_f,
+            temp_min_f = EXCLUDED.temp_min_f,
+            temp_max_f = EXCLUDED.temp_max_f,
+            humidity_percent = EXCLUDED.humidity_percent,
+            cloudiness_percent = EXCLUDED.cloudiness_percent,
+            chance_of_rain_percent = EXCLUDED.chance_of_rain_percent,
+            wind_mph = EXCLUDED.wind_mph,
+            weather = EXCLUDED.weather,
+            weather_description = EXCLUDED.weather_description;
         """
-    cur.execute(upsert_query, (location, temp_f))
+    values = (
+            location,
+            cur_weather["temp_f"],
+            cur_weather["temp_min_f"],
+            cur_weather["temp_max_f"],
+            cur_weather["humidity_percent"],
+            cur_weather["cloudiness_percent"],
+            cur_weather["chance_of_rain_percent"],
+            cur_weather["wind_mph"],
+            cur_weather["weather"],
+            cur_weather["weather_description"]
+        )
+    cur.execute(upsert_query, values)
+    
 
     sql = """
     INSERT INTO weather_forecast_3h (
@@ -105,22 +127,22 @@ def push_traffic_entry(origin, destination, date, dow, peak_entry):
         .field("ratio", peak_entry["ratio"]) \
         .time(time_obj, WritePrecision.NS)
 
-    write_api.write(bucket=BUCKET, org=ORG, record=point)
-    write_api.__del__()
 
 
 if __name__ == "__main__":
 
     home = "Beaverton, US"
-    location = "Portland, US"
+    location1 = "Portland, US"
+    location2 = "Seattle, US"
 
-    forecast = fetch_weather_points(OWM_API_KEY, location)
+    forecast1 = fetch_weather_points(OWM_API_KEY, location1)
+    forecast2 = fetch_weather_points(OWM_API_KEY, location2)
 
 
-    for row in forecast:  # first 5 entries
+    for row in forecast1:  # first 5 entries
         print(row)
 
-        push_weather_entry(location, row)
+        push_weather_entry(location1, row)
 
 
 
@@ -146,4 +168,10 @@ if __name__ == "__main__":
         delay = traffic - baseline
         print(f"{t} → {traffic:.1f} mins (baseline {baseline:.1f}), delay +{delay:.1f} mins, ratio={ratio}")
     '''
+
+    for row in forecast2:  # first 5 entries
+        print(row)
+
+        push_weather_entry(location2, row)
+
 
