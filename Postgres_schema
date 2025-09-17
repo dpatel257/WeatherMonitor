@@ -1,0 +1,29 @@
+CREATE TABLE current_weather (
+    location             text PRIMARY KEY,
+    temp_f               DOUBLE PRECISION,
+    temp_min_f           DOUBLE PRECISION,
+    temp_max_f           DOUBLE PRECISION,
+    humidity_percent     DOUBLE PRECISION,
+    cloudiness_percent   DOUBLE PRECISION,
+    chance_of_rain_percent DOUBLE PRECISION,
+    wind_mph             DOUBLE PRECISION,
+    weather              text,
+    weather_description  text,
+    updated_at           timestamptz DEFAULT now()
+);
+
+CREATE TABLE weather_forecast_3h (
+    forecast_time      TIMESTAMP NOT NULL,
+    location           TEXT NOT NULL,
+    day_of_week        TEXT,
+    temp_f            DOUBLE PRECISION,
+    temp_min_f        DOUBLE PRECISION,
+    temp_max_f        DOUBLE PRECISION,
+    humidity_percent  DOUBLE PRECISION,
+    cloudiness_percent DOUBLE PRECISION,
+    rain_percent      DOUBLE PRECISION,
+    wind_mph          DOUBLE PRECISION,
+    weather           TEXT,
+    pleasantness_score DOUBLE PRECISION,
+    PRIMARY KEY (forecast_time, location)
+);
